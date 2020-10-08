@@ -9,6 +9,6 @@ pub extern crate gymnarium_environments_gym;
 pub extern crate gymnarium_visualisers_base;
 pub extern crate gymnarium_visualisers_piston;
 // pub extern crate gymnarium_environments_tiquthon;
-// pub extern crate gymnarium_environments_code_bullet;
 pub extern crate gymnarium_agents_random;
+pub extern crate gymnarium_environments_code_bullet;
 // pub extern crate gymnarium_agents_q_learning;
