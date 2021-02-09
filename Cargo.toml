@@ -12,8 +12,8 @@ edition = "2018"
 license = "MIT"
 
 [dependencies]
+# gymnarium_agents_q_learning = { path = "../gymnarium_agents_q_learning" }
 gymnarium_agents_random = { path = "../gymnarium_agents_random" }
-#gymnarium_agents_q_learning = { path = "../gymnarium_agents_q_learning" }
 gymnarium_base = { path = "../gymnarium_base" }
 gymnarium_visualisers_base = { path = "../gymnarium_visualisers_base" }
 gymnarium_visualisers_piston = { path = "../gymnarium_visualisers_piston" }
