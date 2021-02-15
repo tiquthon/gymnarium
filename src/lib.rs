@@ -25,7 +25,8 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use gymnarium_base::{Agent, Environment, Seed};
+use gymnarium_base::{Agent, Environment, Reward, Seed};
+
 use gymnarium_visualisers_base::{
     DrawableEnvironment, PixelArrayDrawableEnvironment, PixelArrayVisualiser,
     TextDrawableEnvironment, TextVisualiser, ThreeDimensionalDrawableEnvironment,
@@ -49,12 +50,13 @@ pub struct RunOptions {
 
 pub fn run_with_no_visualiser<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>,
+    E: Environment<EError, EReward, EInfo, EData>,
     AError: Error,
     AData: Serialize + DeserializeOwned,
-    A: Agent<AError, AData>,
+    A: Agent<AError, EReward, AData>,
     XCF: Fn(&E, &A, u128, u128) -> bool,
 >(
     environment: E,
@@ -89,7 +91,7 @@ pub fn run_with_no_visualiser<
         let (new_state, reward, done, _) = environment.step(&action).unwrap();
         step += 1;
         agent
-            .process_reward(&state, &new_state, reward, done)
+            .process_reward(&state, &action, &new_state, reward, done)
             .unwrap();
 
         state = if run_options.reset_environment_on_done && done {
@@ -121,15 +123,16 @@ pub fn run_with_no_visualiser<
 
 pub fn run_with_two_dimensional_visualiser<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     DEError: Error,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>
+    E: Environment<EError, EReward, EInfo, EData>
         + DrawableEnvironment
         + TwoDimensionalDrawableEnvironment<DEError>,
     AError: Error,
     AData: Serialize + DeserializeOwned,
-    A: Agent<AError, AData>,
+    A: Agent<AError, EReward, AData>,
     VError: Error,
     TDVError: Error,
     V: Visualiser<VError> + TwoDimensionalVisualiser<TDVError, VError, DEError>,
@@ -172,7 +175,7 @@ pub fn run_with_two_dimensional_visualiser<
         step += 1;
 
         agent
-            .process_reward(&state, &new_state, reward, done)
+            .process_reward(&state, &action, &new_state, reward, done)
             .unwrap();
 
         state = if run_options.reset_environment_on_done && done {
@@ -209,15 +212,16 @@ pub fn run_with_two_dimensional_visualiser<
 
 pub fn _run_with_three_dimensional_visualiser<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     DEError: Error,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>
+    E: Environment<EError, EReward, EInfo, EData>
         + DrawableEnvironment
         + ThreeDimensionalDrawableEnvironment<DEError>,
     AError: Error,
     AData: Serialize + DeserializeOwned,
-    A: Agent<AError, AData>,
+    A: Agent<AError, EReward, AData>,
     VError: Error,
     TDVError: Error,
     V: Visualiser<VError> + ThreeDimensionalVisualiser<TDVError, VError, DEError>,
@@ -260,7 +264,7 @@ pub fn _run_with_three_dimensional_visualiser<
         step += 1;
 
         agent
-            .process_reward(&state, &new_state, reward, done)
+            .process_reward(&state, &action, &new_state, reward, done)
             .unwrap();
 
         state = if run_options.reset_environment_on_done && done {
@@ -297,15 +301,16 @@ pub fn _run_with_three_dimensional_visualiser<
 
 pub fn _run_with_pixel_array_visualiser<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     DEError: Error,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>
+    E: Environment<EError, EReward, EInfo, EData>
         + DrawableEnvironment
         + PixelArrayDrawableEnvironment<DEError>,
     AError: Error,
     AData: Serialize + DeserializeOwned,
-    A: Agent<AError, AData>,
+    A: Agent<AError, EReward, AData>,
     VError: Error,
     TDVError: Error,
     V: Visualiser<VError> + PixelArrayVisualiser<TDVError, VError, DEError>,
@@ -348,7 +353,7 @@ pub fn _run_with_pixel_array_visualiser<
         step += 1;
 
         agent
-            .process_reward(&state, &new_state, reward, done)
+            .process_reward(&state, &action, &new_state, reward, done)
             .unwrap();
 
         state = if run_options.reset_environment_on_done && done {
@@ -385,13 +390,16 @@ pub fn _run_with_pixel_array_visualiser<
 
 pub fn _run_with_text_visualiser<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     DEError: Error,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData> + DrawableEnvironment + TextDrawableEnvironment<DEError>,
+    E: Environment<EError, EReward, EInfo, EData>
+        + DrawableEnvironment
+        + TextDrawableEnvironment<DEError>,
     AError: Error,
     AData: Serialize + DeserializeOwned,
-    A: Agent<AError, AData>,
+    A: Agent<AError, EReward, AData>,
     VError: Error,
     TDVError: Error,
     V: Visualiser<VError> + TextVisualiser<TDVError, VError, DEError>,
@@ -434,7 +442,7 @@ pub fn _run_with_text_visualiser<
         step += 1;
 
         agent
-            .process_reward(&state, &new_state, reward, done)
+            .process_reward(&state, &action, &new_state, reward, done)
             .unwrap();
 
         state = if run_options.reset_environment_on_done && done {
@@ -465,6 +473,157 @@ pub fn _run_with_text_visualiser<
     agent.close().unwrap();
     environment.close().unwrap();
     visualiser.close().unwrap();
+}
+
+/* -- -- -- -- -- -- -- -- -- -- -- EXIT CONDITION CONSTRUCTORS  -- -- -- -- -- -- -- -- -- -- -- */
+
+/*
+ * Visualiser:
+ * - No Visualiser
+ * - Two Dimensional Visualiser
+ * - Three Dimensional Visualiser
+ * - RGB Visualiser
+ * - Text Visualiser
+ *
+ * Exit Variant:
+ * - True
+ * - False
+ * - Episodes Simulated
+ * - Visualiser Closed
+ */
+
+pub mod exit_condition {
+    use super::*;
+
+    pub mod when_no_visualiser {
+        use super::*;
+
+        pub fn as_soon_as_possible<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData>,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+        >() -> impl Fn(&E, &A, u128, u128) -> bool {
+            |_environment, _agent, _episode, _step| true
+        }
+
+        pub fn never<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData>,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+        >() -> impl Fn(&E, &A, u128, u128) -> bool {
+            |_environment, _agent, _episode, _step| false
+        }
+
+        pub fn episodes_simulated<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData>,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+        >(
+            count_of_episodes: u128,
+        ) -> impl Fn(&E, &A, u128, u128) -> bool {
+            move |_environment, _agent, episode, _step| episode >= count_of_episodes
+        }
+    }
+
+    pub mod when_visualiser {
+        use super::*;
+
+        pub fn as_soon_as_possible<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData> + DrawableEnvironment,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+            VError: Error,
+            V: Visualiser<VError>,
+        >() -> impl Fn(&E, &A, &V, u128, u128) -> bool {
+            |_environment, _agent, _visualiser, _episode, _step| true
+        }
+
+        pub fn never<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData> + DrawableEnvironment,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+            VError: Error,
+            V: Visualiser<VError>,
+        >() -> impl Fn(&E, &A, &V, u128, u128) -> bool {
+            |_environment, _agent, _visualiser, _episode, _step| false
+        }
+
+        pub fn episodes_simulated<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData> + DrawableEnvironment,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+            VError: Error,
+            V: Visualiser<VError>,
+        >(
+            count_of_episodes: u128,
+        ) -> impl Fn(&E, &A, &V, u128, u128) -> bool {
+            move |_environment, _agent, _visualiser, episode, _step| episode >= count_of_episodes
+        }
+
+        pub fn closed<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData> + DrawableEnvironment,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+            VError: Error,
+            V: Visualiser<VError>,
+        >() -> impl Fn(&E, &A, &V, u128, u128) -> bool {
+            |_environment, _agent, visualiser, _episode, _step| !visualiser.is_open()
+        }
+
+        pub fn closed_or_episodes_simulated<
+            EError: Error,
+            EReward: Reward,
+            EInfo: Debug,
+            EData: Serialize + DeserializeOwned,
+            E: Environment<EError, EReward, EInfo, EData> + DrawableEnvironment,
+            AError: Error,
+            AData: Serialize + DeserializeOwned,
+            A: Agent<AError, EReward, AData>,
+            VError: Error,
+            V: Visualiser<VError>,
+        >(
+            count_of_episodes: u128,
+        ) -> impl Fn(&E, &A, &V, u128, u128) -> bool {
+            move |_environment, _agent, visualiser, episode, _step| {
+                !visualiser.is_open() || episode >= count_of_episodes
+            }
+        }
+    }
 }
 
 /* -- -- -- -- -- -- -- -- -- -- -- -- -- -- - HELPER - -- -- -- -- -- -- -- -- -- -- -- -- -- -- */
@@ -534,9 +693,10 @@ impl<EAError: Error> From<ron::error::Error> for LoadError<EAError> {
 
 fn load_environment<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>,
+    E: Environment<EError, EReward, EInfo, EData>,
 >(
     environment: &mut E,
     environment_load_path_string: String,
@@ -567,7 +727,12 @@ fn load_environment<
     }
 }
 
-fn load_agent<AError: Error, AData: Serialize + DeserializeOwned, A: Agent<AError, AData>>(
+fn load_agent<
+    AError: Error,
+    EReward: Reward,
+    AData: Serialize + DeserializeOwned,
+    A: Agent<AError, EReward, AData>,
+>(
     agent: &mut A,
     agent_load_path_string: String,
 ) -> Result<(), LoadError<AError>> {
@@ -648,9 +813,10 @@ impl From<Box<bincode::ErrorKind>> for StoreError {
 
 fn store_environment<
     EError: Error,
+    EReward: Reward,
     EInfo: Debug,
     EData: Serialize + DeserializeOwned,
-    E: Environment<EError, EInfo, EData>,
+    E: Environment<EError, EReward, EInfo, EData>,
 >(
     environment: &E,
     environment_store_path_string: String,
@@ -678,7 +844,12 @@ fn store_environment<
     }
 }
 
-fn store_agent<AError: Error, AData: Serialize + DeserializeOwned, A: Agent<AError, AData>>(
+fn store_agent<
+    AError: Error,
+    EReward: Reward,
+    AData: Serialize + DeserializeOwned,
+    A: Agent<AError, EReward, AData>,
+>(
     agent: &A,
     agent_store_path_string: String,
 ) -> Result<(), StoreError> {
